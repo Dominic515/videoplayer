@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111317">
+  <title>내 영상 플레이어</title>
+  <style>
+    :root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;background:#0b0c10;color:#f5f6f8}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;padding:calc(28px + env(safe-area-inset-top)) 17px calc(28px + env(safe-area-inset-bottom));background:radial-gradient(ellipse at 50% -15%,#272b3b 0%,#0b0c10 53%)}
+    main{max-width:740px;margin:0 auto}
+    .eyebrow{font-size:13px;letter-spacing:.12em;font-weight:700;color:#a9b8ff;margin-bottom:12px}
+    h1{font-size:clamp(29px,6vw,40px);letter-spacing:-.055em;margin:0 0 12px}
+    .sub{color:#a9abb7;font-size:15px;line-height:1.65;margin:0 0 25px}
+    .pane{border:1px solid #30333d;background:rgba(29,31,40,.76);border-radius:22px;overflow:hidden;box-shadow:0 18px 48px #0004}
+    .empty{padding:48px 22px;text-align:center;display:grid;justify-items:center;gap:14px}
+    .glyph{width:70px;height:70px;display:grid;place-items:center;border-radius:21px;background:#34394f;font-size:29px}
+    .empty strong{font-size:18px}
+    .empty small{max-width:260px;color:#a6a8b5;line-height:1.6}
+    button,.choose{font:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .choose{display:inline-flex;align-items:center;justify-content:center;border-radius:15px;padding:15px 24px;background:#b5c5ff;color:#101425;font-weight:750;font-size:16px;min-height:52px}
+    .choose:active{background:#91aaff}
+    input[type=file]{display:none}
+    #playerArea{display:none}
+    .videoWrap{background:#000;position:relative}
+    video{width:100%;max-height:65vh;display:block;aspect-ratio:16/9;background:#000}
+    .controls{padding:19px;display:grid;gap:15px}
+    .filename{font-weight:650;overflow-wrap:anywhere;font-size:15px;line-height:1.45}
+    .buttons{display:flex;gap:9px;align-items:center;justify-content:center;flex-wrap:wrap}
+    .action{background:#303441;color:#f7f7fa;border:1px solid #454a5b;border-radius:13px;padding:13px 15px;min-height:47px;font-weight:650}
+    .action:active{background:#454a59}
+    .fullscreen{background:#b5c5ff;color:#131727;border-color:transparent}
+    .secondary{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    select{font:inherit;background:#303441;color:white;border:1px solid #454a5b;padding:10px;border-radius:11px;min-height:44px}
+    .muted{font-size:12px;color:#989dab;line-height:1.6}
+    .footer{font-size:13px;color:#858a99;line-height:1.7;padding:20px 5px 0}
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">SAFARI VIDEO</div>
+  <h1>내 영상 플레이어</h1>
+  <p class="sub">아이폰에 저장된 영상을 선택해서 Safari에서 재생하세요. 영상은 서버로 업로드되지 않습니다.</p>
+  <section class="pane">
+    <div class="empty" id="emptyArea">
+      <div class="glyph" aria-hidden="true">▶</div>
+      <strong>재생할 영상을 선택하세요</strong>
+      <small>파일 앱 또는 사진 보관함에서 영상을 불러올 수 있어요.</small>
+      <label class="choose" for="filePicker">영상 선택하기</label>
+    </div>
+    <div id="playerArea">
+      <div class="videoWrap"><video id="video" controls playsinline preload="metadata"></video></div>
+      <div class="controls">
+        <div id="filename" class="filename"></div>
+        <div class="buttons">
+          <button class="action" id="back" type="button" aria-label="10초 뒤로">↶ 10초</button>
+          <button class="action" id="forward" type="button" aria-label="10초 앞으로">10초 ↷</button>
+          <button class="action fullscreen" id="full" type="button">⛶ 전체 화면</button>
+        </div>
+        <div class="secondary">
+          <label for="speed">재생 속도 <select id="speed" aria-label="재생 속도"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+          <label class="choose" for="filePicker" style="padding:11px 15px;font-size:14px;min-height:44px">다른 영상</label>
+        </div>
+        <div class="muted">영상 화면을 탭하면 Safari에서 제공하는 재생 컨트롤을 사용할 수 있어요. 전체 화면의 모양은 iOS 버전에 따라 다를 수 있습니다.</div>
+      </div>
+    </div>
+  </section>
+  <p class="footer">개인용 로컬 재생 페이지 · 별도의 계정이나 업로드 없이 이용 · Safari가 지원하는 동영상 형식만 재생 가능</p>
+  <input id="filePicker" type="file" accept="video/*,.mp4,.mov,.m4v,.webm" aria-label="동영상 파일 선택">
+</main>
+<script>
+(() => {
+  'use strict';
+  const picker = document.getElementById('filePicker');
+  const video = document.getElementById('video');
+  const empty = document.getElementById('emptyArea');
+  const area = document.getElementById('playerArea');
+  const filename = document.getElementById('filename');
+  const speed = document.getElementById('speed');
+  let objectURL = null;
+  picker.addEventListener('change', () => {
+    const file = picker.files && picker.files[0];
+    if (!file) return;
+    video.pause();
+    if (objectURL) URL.revokeObjectURL(objectURL);
+    objectURL = URL.createObjectURL(file);
+    filename.textContent = file.name;
+    video.src = objectURL;
+    video.load();
+    video.playbackRate = Number(speed.value);
+    empty.style.display = 'none';
+    area.style.display = 'block';
+    picker.value = '';
+  });
+  function jump(seconds){
+    if(!Number.isFinite(video.duration)) return;
+    video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
+  }
+  document.getElementById('back').addEventListener('click',()=>jump(-10));
+  document.getElementById('forward').addEventListener('click',()=>jump(10));
+  speed.addEventListener('change',()=>{video.playbackRate=Number(speed.value)});
+  document.getElementById('full').addEventListener('click',async()=>{
+    try {
+      if(typeof video.webkitEnterFullscreen === 'function') video.webkitEnterFullscreen();
+      else if(typeof video.requestFullscreen === 'function') await video.requestFullscreen();
+      else if(typeof video.webkitRequestFullscreen === 'function') video.webkitRequestFullscreen();
+      else alert('이 환경에서는 전체 화면 버튼을 지원하지 않습니다. 영상 자체의 전체 화면 버튼을 눌러 보세요.');
+    } catch(e) { alert('영상의 재생 컨트롤에서 전체 화면을 눌러 보세요.'); }
+  });
+  window.addEventListener('pagehide',()=>{if(objectURL) URL.revokeObjectURL(objectURL)});
+})();
+</script>
+</body>
+</html>
